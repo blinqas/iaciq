@@ -175,16 +175,16 @@ jobs:
 
           # ARM_CLIENT_ID_INIT
           if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" ]]; then
-            echo "ARM_CLIENT_ID_INIT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+            echo "ARM_CLIENT_ID_INIT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
           elif [[ -n "$ARM_CLIENT_ID_INIT" ]]; then
-            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID_INIT" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID_INIT" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
           fi
 
           # ARM_CLIENT_ID_PLAN
           if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" ]]; then
-            echo "ARM_CLIENT_ID_PLAN=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+            echo "ARM_CLIENT_ID_PLAN=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
           elif [[ -n "$ARM_CLIENT_ID_PLAN" ]]; then
-            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID_PLAN" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID_PLAN" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
           fi
 
           # Resolve ARM_CLIENT_ID_APPLY variable, iaciq.yml values override repository variables.
