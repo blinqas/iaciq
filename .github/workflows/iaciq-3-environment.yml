@@ -55,10 +55,10 @@ jobs:
         id: environment
         run: |
           # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
-          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
-          chmod +x bash-functions.sh && source bash-functions.sh
+          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/tf-environment.sh -o tf-environment.sh
+          chmod +x tf-environment.sh && source tf-environment.sh
           # The function check if variables are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
-          terraform_setup_environment
+          # terraform_setup_environment
 
   SetupTFInit:
     name: EnvInit ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
