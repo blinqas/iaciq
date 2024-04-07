@@ -80,7 +80,7 @@ on:
         description: 'The ARM_TENANT_ID for the environment'
         required: true
       STATE_EXISTS:
-        type: boolean
+        type: string
         description: 'The state exists flag'
         required: true        
 
@@ -104,7 +104,7 @@ env:
 jobs:
   terraform-init:
     name: New state ${{ inputs.job_name }}
-    if: ${{ inputs.STATE_EXISTS == 'false' }}
+    if: ${{ inputs.STATE_EXISTS != 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
