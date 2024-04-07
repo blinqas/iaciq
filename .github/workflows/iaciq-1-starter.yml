@@ -8,11 +8,8 @@ on:
         description: 'The git ref of caller repository to process'
         default: 'main'
         required: false
-      runs_on:
-        type: string
-        description: 'The runner to use'
-        default: 'ubuntu-latest'
-        required: false
+
+
 env:
   GH_TOKEN: ${{ github.token }}
 
