@@ -1,0 +1,210 @@
+name: iaciq tag
+
+on:
+  workflow_call:
+    inputs:
+      group:
+        type: string
+        description: 'The current concurrency group'
+        required: true
+      folder:
+        type: string
+        description: 'The current folder'
+        required: true
+      iaciq:
+        type: string
+        description: 'The full output from iaciq.json'
+        required: true
+      runs_on:
+        type: string
+        description: 'The runs-on value from iaciq.json'
+        required: false
+        default: 'ubuntu-latest'
+
+
+jobs:
+  SetupTFEnv:
+    name: Setup ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      runs_on: steps.environment.outputs.runs_on
+      environment_init: steps.environment.outputs.environment_init
+      environment_plan: steps.environment.outputs.environment_plan      
+      environment_apply: steps.environment.outputs.environment_apply
+      terraform_module_path: steps.environment.outputs.terraform_module_path
+      TF_VERSION: steps.environment.outputs.TF_VERSION
+      TF_KEY: steps.environment.outputs.TF_KEY
+      TF_STORAGE_ACCOUNT: steps.environment.outputs.TF_STORAGE_ACCOUNT
+      TF_RESOURCE_GROUP: steps.environment.outputs.TF_RESOURCE_GROUP
+      TF_CONTAINER_NAME: steps.environment.outputs.TF_CONTAINER_NAME      
+      ARM_TENANT_ID: steps.environment.outputs.ARM_TENANT_ID
+      ARM_SUBSCRIPTION_ID: steps.environment.outputs.ARM_SUBSCRIPTION_ID
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Terraform Azure Environment
+        id: environment
+        run: |
+          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
+          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
+          chmod +x bash-functions.sh && source bash-functions.sh
+          # The function check if variables are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
+          terraform_setup_environment
+
+  SetupTFInit:
+    name: EnvInit ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    needs: SetupTFEnv
+    environment: ${{ needs.SetupTFEnv.outputs.environment_init }}
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      ARM_CLIENT_ID_INIT: steps.init_env.outputs.ARM_CLIENT_ID_INIT
+      
+    steps:
+      - name: Get ARM_CLIENT_ID for Terraform Init
+        id: init_env        
+        run: |
+          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
+          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
+          chmod +x bash-functions.sh && source bash-functions.sh
+          # The function check if ARM_CLIENT_ID_INIT are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
+          terraform_arm_client_id_init
+
+
+  SetupTFPlan:    
+    name: EnvPlan ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    needs: SetupTFEnv
+    environment: ${{ needs.SetupTFEnv.outputs.environment_plan }}
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      ARM_CLIENT_ID_PLAN: steps.plan_env.outputs.ARM_CLIENT_ID_PLAN
+      
+    steps:
+      - name: Get ARM_CLIENT_ID for Terraform Plan
+        id: plan_env        
+        run: |
+          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
+          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
+          chmod +x bash-functions.sh && source bash-functions.sh
+          # The function check if ARM_CLIENT_ID_PLAN are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
+          terraform_arm_client_id_plan
+
+  SetupTFApply:
+    name: EnvApply ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    needs: SetupTFEnv
+    environment: ${{ needs.SetupTFEnv.outputs.environment_apply }}
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
+      TF_VERSION: ${{ needs.SetupTFEnv.outputs.TF_VERSION }}
+    outputs:
+      ARM_CLIENT_ID_APPLY: steps.apply_env.outputs.ARM_CLIENT_ID_APPLY
+    steps:
+      - name: Get ARM_CLIENT_ID for Terraform Apply
+        id: apply_env        
+        run: |
+          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
+          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
+          chmod +x bash-functions.sh && source bash-functions.sh
+          # The function check if ARM_CLIENT_ID_APPLY are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
+          terraform_arm_client_id_apply
+
+  CheckStateExist:
+    name: CheckStateExist ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    needs:
+      - SetupTFEnv
+      - SetupTFApply
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      ARM_CLIENT_ID: ${{ needs.SetupTFApply.outputs.ARM_CLIENT_ID_APPLY }}
+      ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
+      TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}
+      TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
+      TF_KEY: ${{ needs.SetupTFEnv.outputs.TF_KEY }}
+    outputs:
+      STATE_EXISTS: steps.check_blob.outputs.STATE_EXISTS
+    steps:
+      - name: Login to Azure CLI
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+      
+      - name: Set Azure Subscription
+        run: az account set --subscription $ARM_SUBSCRIPTION_ID
+        
+      - name: Check if Terraform state file exists in the Azure blob storage
+        id: check_blob
+        run: |
+          EXISTS=$(az storage blob exists --account-name $TF_STORAGE_ACCOUNT --container-name $TF_CONTAINER_NAME --name $TF_KEY --output tsv)
+          if [[ $EXISTS == "True" ]]; then
+            echo "$TF_KEY exists in $TF_CONTAINER_NAME."
+            echo "STATE_EXISTS=true" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          else
+            echo "$TF_KEY does not exist in $TF_CONTAINER_NAME."
+            echo "STATE_EXISTS=false" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          fi
+        
+  # One conditional job for each workflow type here
+  CallTFAzure:
+    name: "Terraform Azure"
+    needs:
+      - SetupTFEnv
+      - SetupTFInit
+      - SetupTFPlan
+      - SetupTFApply
+    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
+    uses: blinqas/iaciq/.github/workflows/iaciq-4-tf-azure.yml@main
+    with:
+      job_name: ${{ inputs.job_name }}
+      iaciq: ${{ inputs.iaciq }}
+      group: ${{ inputs.group }}    
+      folder: ${{ inputs.folder }}
+      runs_on: ${{ needs.SetupTFEnv.outputs.runs_on }}
+      environment_init: ${{ needs.SetupTFEnv.outputs.environment_init }}
+      environment_plan: ${{ needs.SetupTFEnv.outputs.environment_plan }}
+      environment_apply: ${{ needs.SetupTFEnv.outputs.environment_apply }}
+      terraform_module_path:  ${{ needs.Setup.outputs.terraform_module_path }}
+      TF_KEY: ${{ needs.SetupTFEnv.outputs.TF_KEY }}
+      TF_VERSION: ${{ needs.SetupTFEnv.outputs.TF_VERSION }}
+      TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}
+      TF_RESOURCE_GROUP: ${{ needs.SetupTFEnv.outputs.TF_RESOURCE_GROUP }}
+      TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
+      ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID_INIT: ${{ needs.SetupTFInit.outputs.ARM_CLIENT_ID_INIT }}
+      ARM_CLIENT_ID_PLAN: ${{ needs.SetupTFPlan.outputs.ARM_CLIENT_ID_PLAN }}
+      ARM_CLIENT_ID_APPLY: ${{ needs.SetupTFApply.outputs.ARM_CLIENT_ID_APPLY }}
+      STATE_EXISTS: ${{ needs.CheckStateExist.outputs.STATE_EXISTS }}
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+

@@ -1,0 +1,396 @@
+name: iaciq tf azure
+
+on:
+  workflow_call:
+    inputs:
+      environment_init:
+        type: string
+        description: 'The environment to run the init in. Environment holds the ARM and TF variables for the init actions'
+        required: true
+      environment_plan:
+        type: string
+        description: 'The environment to run the plan in. Environment holds the ARM and TF variables for the plan and init actions'
+        required: true
+      environment_apply:
+        type: string
+        description: 'The environment to run the apply in. Environment holds the ARM and TF variables for the apply actions'
+        required: true
+      runs_on:
+        type: string
+        description: 'The tag of the runner to run the workflow on'
+        required: true
+      group:
+        type: string
+        description: 'The current concurrency group'
+        required: true
+      folder:
+        type: string
+        description: 'The folder to process'
+        required: true
+      terraform_module_path:
+        type: string
+        description: 'Terraform module path.'
+        required: true
+      job_name:
+        type: string
+        description: 'A name suffix used to improve the job and steps presentation in GitHub Actions'
+        required: true
+      iaciq:
+        type: string
+        description: 'The full output from iaciq.json'
+        required: true
+      TF_KEY:
+        type: string
+        description: 'The Terraform key to use'
+        required: false      
+      TF_VERSION:
+        type: string
+        description: 'The Terraform version to use'
+        required: true
+      TF_STORAGE_ACCOUNT:
+        type: string
+        description: 'The Terraform storage account to use'
+        required: true
+      TF_RESOURCE_GROUP:
+        type: string
+        description: 'The Terraform resource group to use'
+        required: true
+      TF_CONTAINER_NAME:
+        type: string
+        description: 'The Terraform container name to use'
+        required: true
+      ARM_CLIENT_ID_INIT:
+        type: string
+        description: 'The ARM_CLIENT_ID for the init environment'
+        required: true
+      ARM_CLIENT_ID_PLAN:
+        type: string
+        description: 'The ARM_CLIENT_ID for the plan environment'
+        required: true
+      ARM_CLIENT_ID_APPLY:
+        type: string
+        description: 'The ARM_CLIENT_ID for the apply environment'
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        type: string
+        description: 'The ARM_SUBSCRIPTION_ID for the environment'
+        required: true
+      ARM_TENANT_ID:
+        type: string
+        description: 'The ARM_TENANT_ID for the environment'
+        required: true
+      STATE_EXISTS:
+        type: boolean
+        description: 'The state exists flag'
+        required: true
+
+env:
+  folder: ${{ inputs.folder}}
+  terraform_module_path: ${{ inputs.terraform_module_path }}
+  ARM_USE_AZUREAD: true     # This iaciq Workflow will use AzureAD for authentication
+  ARM_USE_OIDC: true        # This iaciq Workflow will use OIDC for authentication
+  TF_BACKEND_TYPE: azurerm  # This iaciq Workflow will use AzureRM as the backend
+  ARM_CLIENT_ID_INIT: ${{ inputs.ARM_CLIENT_ID_INIT }}
+  ARM_CLIENT_ID_PLAN: ${{ inputs.ARM_CLIENT_ID_PLAN }}
+  ARM_CLIENT_ID_APPLY: ${{ inputs.ARM_CLIENT_ID_APPLY }}
+  ARM_SUBSCRIPTION_ID: ${{ inputs.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ inputs.ARM_TENANT_ID }}
+  TF_KEY: ${{ inputs.TF_KEY }}
+  TF_VERSION: ${{ inputs.TF_VERSION }}
+  TF_STORAGE_ACCOUNT: ${{ inputs.TF_STORAGE_ACCOUNT }} 
+  TF_RESOURCE_GROUP: ${{ inputs.TF_RESOURCE_GROUP }}
+  TF_CONTAINER_NAME: ${{ inputs.TF_CONTAINER_NAME }}
+
+jobs:
+  terraform-init:
+    name: New state ${{ inputs.job_name }}
+    if: ${{ inputs.STATE_EXISTS == false }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.terraform_module_path }}
+    environment: ${{ inputs.environment_init }}
+
+    env:
+      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_INIT }}
+         
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: PreHook Terraform Init
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_init.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format
+        id: terraform-fmt
+        working-directory: ${{ env.terraform_module_path }}
+        run: terraform fmt --check --recursive
+        continue-on-error: false
+
+      # print oidc token claims
+      - name: print oidc token claims
+        run: |
+            IDTOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" -H "Accept: application/json; api-version=2.0" -H "Content-Type: application/json"  | jq -r '.value')
+            jwtd() {
+              if [[ -x $(command -v jq) ]]; then
+                  jq -R 'split(".") | .[1] | @base64d | fromjson' <<< "${1}" > jwt_claims.json
+                  cat jwt_claims.json
+                  echo ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL}} 
+              fi
+            }
+            jwtd $IDTOKEN
+    
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ inputs.terraform_module_path }}
+        run: |
+          terraform init \
+          -reconfigure \
+          -backend=true \
+          -upgrade \
+          -backend-config="resource_group_name=$TF_RESOURCE_GROUP" \
+          -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT" \
+          -backend-config="container_name=$TF_CONTAINER_NAME" \
+          -backend-config="key=${TF_KEY}" \
+          -backend-config="subscription_id=$ARM_SUBSCRIPTION_ID"      
+
+  terraform-plan:
+    name: Plan ${{ inputs.job_name }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.terraform_module_path }}
+    environment: ${{ inputs.environment_plan }}
+    outputs:
+      plan_file: ${{ steps.plan.outputs.plan_file }}
+      PLAN_EXIT_CODE: ${{ steps.plan.outputs.PLAN_EXIT_CODE }}
+          
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: PreHook Terraform
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_terraform.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.0.0
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format
+        id: terraform-fmt
+        working-directory: ${{ inputs.terraform_module_path }}
+        run: terraform fmt --check --recursive
+        continue-on-error: false
+
+      # print oidc token claims
+      - name: print oidc token claims
+        run: |
+            IDTOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" -H "Accept: application/json; api-version=2.0" -H "Content-Type: application/json"  | jq -r '.value')
+            jwtd() {
+              if [[ -x $(command -v jq) ]]; then
+                  jq -R 'split(".") | .[1] | @base64d | fromjson' <<< "${1}" > jwt_claims.json
+                  cat jwt_claims.json
+                  echo ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL}} 
+              fi
+            }
+            jwtd $IDTOKEN
+    
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ inputs.terraform_module_path }}
+        run: |
+          # Check if TF_KEY is set, if not, set it to the folder base name
+          if [ -z "$TF_KEY" ]; then
+            export TF_KEY="$(basename $folder).tfstate"
+          fi
+          echo "TF_KEY: $TF_KEY"
+          terraform init \
+          -reconfigure \
+          -backend=true \
+          -upgrade \
+          -backend-config="resource_group_name=$TF_RESOURCE_GROUP" \
+          -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT" \
+          -backend-config="container_name=$TF_CONTAINER_NAME" \
+          -backend-config="key=${TF_KEY}" \
+          -backend-config="subscription_id=$ARM_SUBSCRIPTION_ID"
+      
+      - name: PreHook Validate
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_validate.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: ${{ inputs.terraform_module_path }}
+        run: terraform validate -no-color
+
+      - name: PreHook Plan
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_plan.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+    
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ inputs.terraform_module_path }}
+        run: |
+          # Securely load bash functions with integrity check
+          curl -s -o bash-functions.sh https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
+          if ! echo "5ad76e65df72ec152d82d55240e1d1093f437737925afca4272fcf60e1e40ec7  bash-functions.sh" | sha256sum --check; then
+            echo "Checksum verification failed. The script will not be executed."
+            exit 1
+          fi
+          chmod +x bash-functions.sh && source bash-functions.sh
+      
+          # Check if extra_parameters.txt exists and is not empty
+          if [ -s extra_parameters.txt ]; then
+            mapfile -t EXTRA_PARAMETERS < extra_parameters.txt
+          fi
+      
+          # Bash function to expand all .tfvars files to -var-file parameters
+          VARFILES=$(terraform_expand_tfvars "$folder")
+          echo "VARFILES=$VARFILES"
+      
+          # Run terraform plan with combined parameters
+          plan_file="plan.tfplan"
+          output_file="plan_output.txt"
+          terraform plan "${EXTRA_PARAMETERS[@]}" $VARFILES -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
+          PLAN_EXIT_CODE=${PIPESTATUS[0]} 
+          echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+      
+          # Parse the terraform plan output
+          plan_output_step_title=$(terraform_plan_output_title "$output_file")
+          echo "plan_output_step_title=$plan_output_step_title" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+        continue-on-error: true        
+
+      - name: PostHook Plan
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="posthook_plan.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: ${{ env.plan_output_step_title }}
+        id: evaluate-plan-exit-code
+        run: |
+          source bash-functions.sh
+
+          # Bash function to print the essential plan output
+          terraform_print_essential_plan_output "$output_file"
+
+          # Bash function to evaluate the terraform plan exit code, and exit the workflow if it's not 0 or 2
+          terraform_evaluate_plan_exit_code "$PLAN_EXIT_CODE"
+
+          # If the plan exit code is not 0 or 2, exit the workflow
+          if [ "$PLAN_EXIT_CODE" != "2" || "$PLAN_EXIT_CODE" != 0 ]; then
+            exit 1
+          fi
+  
+      - name: Upload Terraform Plan as Artifacts
+        if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "plan.tfplan"
+          path: ${{ env.plan_file }}
+  
+      - name: Upload Terraform Plan Outputs as Artifacts
+        if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
+        uses: actions/upload-artifact@v3
+        with:
+          name: "plan-output.txt"
+          path: ${{ env.output_file }}
+
+  terraform-apply:    
+    name: Apply ${{ inputs.job_name }}
+    runs-on: rover
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.terraform_module_path }}
+    needs: [terraform-plan]
+    if: ${{ needs.terraform-plan.outputs.PLAN_EXIT_CODE == '2' }}
+    environment: ${{ inputs.environment_apply }}
+         
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '21'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.0.0
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: PreHook Terraform
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_terraform.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: Terraform Init
+        id: init
+        run: |
+          # Check if TF_KEY is set, if not, set it to the folder base name
+          if [ -z "$TF_KEY" ]; then
+            export TF_KEY=$(basename $folder)
+          fi
+          echo "TF_KEY: $TF_KEY"
+          terraform init \
+          -reconfigure \
+          -backend=true \
+          -upgrade \
+          -backend-config="resource_group_name=$TF_RESOURCE_GROUP" \
+          -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT" \
+          -backend-config="container_name=$TF_CONTAINER_NAME" \
+          -backend-config="key=${TF_KEY}.tfstate" \
+          -backend-config="subscription_id=$ARM_SUBSCRIPTION_ID"
+      
+      - name: Download Terraform Plan from Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: "plan.tfplan"
+          path: ${{ env.terraform_module_path }}
+
+      - name: PreHook Apply
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="prehook_apply.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+
+      - name: Terraform Apply
+        id: apply
+        run: |        
+          # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
+          terraform apply "$plan_file" -auto-approve -no-color          
+
+      - name: PostHook Apply
+        working-directory: ${{ env.folder }}
+        run: |
+          hook="posthook_apply.sh"
+          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook

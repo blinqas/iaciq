@@ -1,0 +1,26 @@
+name: iaciq folder
+
+on:
+  workflow_call:
+    inputs:
+      group:
+        type: string
+        description: 'The current concurrency group'
+        required: true
+      iaciq:
+        type: string
+        description: 'The full output from iaciq.json'
+        required: true
+  
+jobs:    
+  Folder:
+    name: "Folder ${{ fromJson(inputs.iaciq).metadata[matrix.folder].job_name }}"
+    strategy:
+      matrix:
+        folder: ${{ fromJson(inputs.iaciq).concurrency_groups[inputs.group] }}
+    uses: blinqas/iaciq/.github/workflows/iaciq-3-environment.yml@main
+    with:
+      runs_on: ${{ fromJson(inputs.iaciq).metadata[matrix.folder].runs_on }}
+      group: ${{ inputs.group }}    
+      folder: ${{ matrix.folder }}
+      iaciq: ${{ inputs.iaciq }}

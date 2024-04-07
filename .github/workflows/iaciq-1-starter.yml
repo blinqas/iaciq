@@ -1,0 +1,69 @@
+name: iaciq starter
+
+on:
+  workflow_call:
+    inputs:
+      git_ref:
+        type: string
+        description: 'The git ref of caller repository to process'
+        default: 'main'
+        required: false
+      runs_on:
+        type: string
+        description: 'The runner to use'
+        default: 'ubuntu-latest'
+        required: false
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  Setup:
+    name: Setup
+    runs-on: ${{ inputs.runs_on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Ensure uuidgen is installed
+        run: |
+          if ! command -v uuidgen &> /dev/null; then
+            echo "Installing uuid-runtime package"
+            sudo apt-get update && sudo apt-get install -y uuid-runtime
+          else
+            echo "uuidgen is already installed"
+          fi
+
+      - name: iaciq Python
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          curl -s -o iaciq.py https://raw.githubusercontent.com/blinqas/iaciq/main/tools/iaciq.py
+          python3 iaciq.py --git_ref=${{ inputs.git_ref }}
+          cat iaciq.json
+
+      - name: Build json
+        run: |
+          # Stringify the json values
+          iaciq=$(jq -c .iaciq iaciq.json)
+          iaciq_groups=$(jq -c '.iaciq.concurrency_groups | keys // ""' iaciq.json)          
+          
+          payload_file="/tmp/$(uuidgen).json"
+          jq -n \
+            --arg groups "$iaciq_groups" \
+            --arg iaciq "$iaciq" \
+            '{
+              "groups": $groups,
+              "iaciq": $iaciq
+            }' > "$payload_file"
+
+          workflow_id=$(gh workflow list | grep "$GITHUB_WORKFLOW" | awk '{print $NF}')
+          echo "workflow_id=$workflow_id" >> $GITHUB_ENV
+          echo "payload_file=$payload_file" >> $GITHUB_ENV
+
+      - name: Call workflow
+        run: |
+          echo "workflow_id=$workflow_id"
+          echo "payload_file=$payload_file"
+          cat $payload_file
+          gh workflow run $workflow_id --ref ${{ github.ref }} --json < $payload_file
