@@ -290,14 +290,10 @@ jobs:
             mapfile -t EXTRA_PARAMETERS < extra_parameters.txt
           fi
       
-          # Bash function to expand all .tfvars files to -var-file parameters
-          VARFILES=$(terraform_expand_tfvars "$folder")
-          echo "VARFILES=$VARFILES"
-      
           # Run terraform plan with combined parameters
           plan_file="plan.tfplan"
           output_file="plan_output.txt"
-          terraform plan "${EXTRA_PARAMETERS[@]}" $VARFILES -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
+          terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
           PLAN_EXIT_CODE=${PIPESTATUS[0]} 
           echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
       
