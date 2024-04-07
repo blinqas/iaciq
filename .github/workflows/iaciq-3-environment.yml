@@ -291,7 +291,7 @@ jobs:
       - name: Check if Terraform state file exists in the Azure blob storage
         id: check_blob
         run: |
-          EXISTS=$(az storage blob exists --account-name $TF_STORAGE_ACCOUNT --container-name $TF_CONTAINER_NAME --name $TF_KEY --output tsv)
+          EXISTS=$(az storage blob exists --auth-mode login --account-name $TF_STORAGE_ACCOUNT --container-name $TF_CONTAINER_NAME --name $TF_KEY --output tsv)
           if [[ $EXISTS == "True" ]]; then
             echo "$TF_KEY exists in $TF_CONTAINER_NAME."
             echo "STATE_EXISTS=true" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
