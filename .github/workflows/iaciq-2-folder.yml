@@ -20,7 +20,7 @@ jobs:
         folder: ${{ fromJson(inputs.iaciq).concurrency_groups[inputs.group] }}
     uses: blinqas/iaciq/.github/workflows/iaciq-3-environment.yml@main
     with:
-      runs_on: ${{ fromJson(inputs.iaciq).metadata[matrix.folder].runs_on }}
+      runs_on: ${{ fromJson(inputs.iaciq).metadata[matrix.folder].runs_on }}      
       group: ${{ inputs.group }}    
       folder: ${{ matrix.folder }}
       iaciq: ${{ inputs.iaciq }}

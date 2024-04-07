@@ -32,6 +32,7 @@ jobs:
         shell: bash
     outputs:
       runs_on: steps.environment.outputs.runs_on
+      job_name: steps.environment.outputs.job_name
       environment_init: steps.environment.outputs.environment_init
       environment_plan: steps.environment.outputs.environment_plan      
       environment_apply: steps.environment.outputs.environment_apply
@@ -54,11 +55,100 @@ jobs:
       - name: Terraform Azure Environment
         id: environment
         run: |
-          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
-          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/tf-environment.sh -o tf-environment.sh
-          chmod +x tf-environment.sh && source tf-environment.sh
-          # The function check if variables are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
-          # terraform_setup_environment
+          # Configure github environments for terraform init, plan and apply. Default environment names are terraform-init, terraform-plan, terraform-apply. These can be overridden as optional inputs, who can be overridden by iaciq.yml values
+          if [[ -z "${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_init }}" ]]; then
+            echo "environment_init=terraform-init" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment_init=${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_init }}" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -z "${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_plan }}" ]]; then
+            echo "environment_plan=terraform-plan" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment_plan=${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_plan }}" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -z "${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_apply }}" ]]; then
+            echo "environment_apply=terraform-apply" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment_apply=${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_apply }}" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve state file name (TF_KEY), defaults to folder name.tfstate
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_KEY }}" ]]; then
+            echo "TF_KEY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_KEY }}" >> "$GITHUB_OUTPUT"
+          else
+            basedir=$(basename ${{ inputs.folder }})
+            echo "TF_KEY=${basedir}.tfstate" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve Terraform version (TF_VERSION), defaults to latest
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_VERSION }}" ]]; then
+            echo "TF_VERSION=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_VERSION }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_VERSION" ]]; then
+            echo "TF_VERSION=$TF_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            # Use curl to get the latest version of Terraform
+            TF_VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | jq -r '.tag_name')
+            echo "TF_VERSION=${TF_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve TF_ variables, iaciq.yml values override repository variables
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_BACKEND_TYPE }}" ]]; then
+            echo "TF_BACKEND_TYPE=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_BACKEND_TYPE }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_BACKEND_TYPE" ]]; then
+            echo "TF_BACKEND_TYPE=$TF_BACKEND_TYPE" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_BACKEND_TYPE=azurerm" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_STORAGE_ACCOUNT }}" ]]; then
+            echo "TF_STORAGE_ACCOUNT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_STORAGE_ACCOUNT }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_STORAGE_ACCOUNT" ]]; then
+            echo "TF_STORAGE_ACCOUNT=$TF_STORAGE_ACCOUNT" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_STORAGE_ACCOUNT=iaciq" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_RESOURCE_GROUP }}" ]]; then
+            echo "TF_RESOURCE_GROUP=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_RESOURCE_GROUP }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_RESOURCE_GROUP" ]]; then
+            echo "TF_RESOURCE_GROUP=$TF_RESOURCE_GROUP" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_RESOURCE_GROUP=iaciq" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_CONTAINER_NAME }}" ]]; then
+            echo "TF_CONTAINER_NAME=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_CONTAINER_NAME" ]]; then
+            echo "TF_CONTAINER_NAME=$TF_CONTAINER_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_CONTAINER_NAME=iaciq" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve runs_on variable, iaciq.yml values override repository variables
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].runs_on }}" ]]; then
+            echo "runs_on=${{ fromJson(inputs.iaciq).metadata[inputs.folder].runs_on }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$runs_on" ]]; then
+            echo "runs_on=$runs_on" >> "$GITHUB_OUTPUT"
+          else
+            echo "runs_on=ubuntu-latest" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve terraform_module_path variable, iaciq.yml values override repository variables
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].terraform_module_path }}" ]]; then
+            echo "terraform_module_path=${{ fromJson(inputs.iaciq).metadata[inputs.folder].terraform_module_path }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$terraform_module_path" ]]; then
+            echo "terraform_module_path=$terraform_module_path" >> "$GITHUB_OUTPUT"
+          else
+            echo "terraform_module_path=${{ inputs.folder }}" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Resolve job_name variable, iaciq.yml values overrides default folder basedir name
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}" ]]; then
+            echo "job_name=${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}" >> "$GITHUB_OUTPUT"
+          else
+            job_name=$(basename ${{ inputs.folder }})
+            echo "job_name=${job_name}" >> "$GITHUB_OUTPUT"            
+          fi
 
   SetupTFInit:
     name: EnvInit ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
@@ -76,11 +166,17 @@ jobs:
       - name: Get ARM_CLIENT_ID for Terraform Init
         id: init_env        
         run: |
-          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
-          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
-          chmod +x bash-functions.sh && source bash-functions.sh
-          # The function check if ARM_CLIENT_ID_INIT are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
-          terraform_arm_client_id_init
+          # ARM_CLIENT_ID_INIT
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" ]]; then
+            echo "ARM_CLIENT_ID_INIT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID_INIT" ]]; then
+            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID_INIT" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID" ]]; then
+            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID" >> "$GITHUB_OUTPUT"
+          else
+            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
+            exit 1
+          fi
 
 
   SetupTFPlan:    
@@ -99,11 +195,17 @@ jobs:
       - name: Get ARM_CLIENT_ID for Terraform Plan
         id: plan_env        
         run: |
-          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
-          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
-          chmod +x bash-functions.sh && source bash-functions.sh
-          # The function check if ARM_CLIENT_ID_PLAN are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
-          terraform_arm_client_id_plan
+          # ARM_CLIENT_ID_PLAN
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" ]]; then
+            echo "ARM_CLIENT_ID_PLAN=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID_PLAN" ]]; then
+            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID_PLAN" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID" ]]; then
+            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID" >> "$GITHUB_OUTPUT"
+          else
+            echo "No ARM_CLIENT_ID for Terraform Plan found in input, iaciq.yml or github environment"
+            exit 1
+          fi
 
   SetupTFApply:
     name: EnvApply ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
@@ -124,11 +226,17 @@ jobs:
       - name: Get ARM_CLIENT_ID for Terraform Apply
         id: apply_env        
         run: |
-          # Use curl to get the bash-function.sh file from github repo blinqas/iaciq
-          curl -s https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh -o bash-functions.sh
-          chmod +x bash-functions.sh && source bash-functions.sh
-          # The function check if ARM_CLIENT_ID_APPLY are set in iaciq.yml file or as github variables, iaciq.yml values has precedence
-          terraform_arm_client_id_apply
+          # ARM_CLIENT_ID_APPLY
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" ]]; then
+            echo "ARM_CLIENT_ID_APPLY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID_APPLY" ]]; then
+            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID_APPLY" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID" ]]; then
+            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          else
+            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
+            exit 1
+          fi
 
   CheckStateExist:
     name: CheckStateExist ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
@@ -180,10 +288,11 @@ jobs:
       - SetupTFInit
       - SetupTFPlan
       - SetupTFApply
+      - CheckStateExist
     if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
     uses: blinqas/iaciq/.github/workflows/iaciq-4-tf-azure.yml@main
     with:
-      job_name: ${{ inputs.job_name }}
+      job_name: ${{ needs.SetupTFEnv.outputs.job_name }}
       iaciq: ${{ inputs.iaciq }}
       group: ${{ inputs.group }}    
       folder: ${{ inputs.folder }}
@@ -191,7 +300,7 @@ jobs:
       environment_init: ${{ needs.SetupTFEnv.outputs.environment_init }}
       environment_plan: ${{ needs.SetupTFEnv.outputs.environment_plan }}
       environment_apply: ${{ needs.SetupTFEnv.outputs.environment_apply }}
-      terraform_module_path:  ${{ needs.Setup.outputs.terraform_module_path }}
+      terraform_module_path:  ${{ needs.SetupTFEnv.outputs.terraform_module_path }}
       TF_KEY: ${{ needs.SetupTFEnv.outputs.TF_KEY }}
       TF_VERSION: ${{ needs.SetupTFEnv.outputs.TF_VERSION }}
       TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}

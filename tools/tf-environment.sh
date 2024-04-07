@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Configure github environments for terraform init, plan and apply. Default environment names are terraform-init, terraform-plan, terraform-apply. These can be overridden as optional inputs, who can be overridden by iaciq.yml values
 if [[ -z "${{ fromJson(inputs.iaciq).metadata[inputs.folder].environment_init }}" ]]; then
   echo "environment_init=terraform-init" >> "$GITHUB_OUTPUT"
