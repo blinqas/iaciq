@@ -8,7 +8,11 @@ on:
         description: 'The git ref of caller repository to process'
         default: 'main'
         required: false
-
+      runs_on:
+        type: string
+        description: 'The runner to use'
+        default: 'ubuntu-latest'
+        required: false
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -41,7 +45,7 @@ jobs:
 
       - name: Build json
         run: |
-          # Stringify the json values
+          # Extract iaciq.json
           iaciq=$(jq -c .iaciq iaciq.json)
           iaciq_groups=$(jq -c '.iaciq.concurrency_groups | keys // ""' iaciq.json)          
           
