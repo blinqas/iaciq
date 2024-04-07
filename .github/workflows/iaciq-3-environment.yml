@@ -205,7 +205,7 @@ jobs:
       run:
         shell: bash
     env:
-      ARM_CLIENT_ID: ${{ needs.SetupTFApply.outputs.ARM_CLIENT_ID_APPLY }}
+      ARM_CLIENT_ID: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_APPLY }}
       ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
       TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}
