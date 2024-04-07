@@ -179,6 +179,9 @@ jobs:
     outputs:
       plan_file: ${{ steps.plan.outputs.plan_file }}
       PLAN_EXIT_CODE: ${{ steps.plan.outputs.PLAN_EXIT_CODE }}
+
+    env:
+      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_PLAN }}
           
     steps:
       - name: Checkout
@@ -332,6 +335,9 @@ jobs:
     needs: [terraform-plan]
     if: ${{ needs.terraform-plan.outputs.PLAN_EXIT_CODE == '2' }}
     environment: ${{ inputs.environment_apply }}
+
+    env:
+      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_APPLY }}
          
     steps:
       - name: Checkout
