@@ -31,19 +31,19 @@ jobs:
       run:
         shell: bash
     outputs:
-      runs_on: steps.environment.outputs.runs_on
-      job_name: steps.environment.outputs.job_name
-      environment_init: steps.environment.outputs.environment_init
-      environment_plan: steps.environment.outputs.environment_plan      
-      environment_apply: steps.environment.outputs.environment_apply
-      terraform_module_path: steps.environment.outputs.terraform_module_path
-      TF_VERSION: steps.environment.outputs.TF_VERSION
-      TF_KEY: steps.environment.outputs.TF_KEY
-      TF_STORAGE_ACCOUNT: steps.environment.outputs.TF_STORAGE_ACCOUNT
-      TF_RESOURCE_GROUP: steps.environment.outputs.TF_RESOURCE_GROUP
-      TF_CONTAINER_NAME: steps.environment.outputs.TF_CONTAINER_NAME      
-      ARM_TENANT_ID: steps.environment.outputs.ARM_TENANT_ID
-      ARM_SUBSCRIPTION_ID: steps.environment.outputs.ARM_SUBSCRIPTION_ID
+      runs_on: ${{ steps.environment.outputs.runs_on }}
+      job_name: ${{ steps.environment.outputs.job_name }}
+      environment_init: ${{ steps.environment.outputs.environment_init }}
+      environment_plan: ${{ steps.environment.outputs.environment_plan       }}
+      environment_apply: ${{ steps.environment.outputs.environment_apply }}
+      terraform_module_path: ${{ steps.environment.outputs.terraform_module_path }}
+      TF_VERSION: ${{ steps.environment.outputs.TF_VERSION }}
+      TF_KEY: ${{ steps.environment.outputs.TF_KEY }}
+      TF_STORAGE_ACCOUNT: ${{ steps.environment.outputs.TF_STORAGE_ACCOUNT }}
+      TF_RESOURCE_GROUP: ${{ steps.environment.outputs.TF_RESOURCE_GROUP }}
+      TF_CONTAINER_NAME: ${{ steps.environment.outputs.TF_CONTAINER_NAME       }}
+      ARM_TENANT_ID: ${{ steps.environment.outputs.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ steps.environment.outputs.ARM_SUBSCRIPTION_ID }}
 
     steps:
       - name: Checkout
@@ -160,7 +160,7 @@ jobs:
       run:
         shell: bash
     outputs:
-      ARM_CLIENT_ID_INIT: steps.init_env.outputs.ARM_CLIENT_ID_INIT
+      ARM_CLIENT_ID_INIT: ${{ steps.init_env.outputs.ARM_CLIENT_ID_INIT }}
       
     steps:
       - name: Get ARM_CLIENT_ID for Terraform Init
@@ -189,7 +189,7 @@ jobs:
       run:
         shell: bash
     outputs:
-      ARM_CLIENT_ID_PLAN: steps.plan_env.outputs.ARM_CLIENT_ID_PLAN
+      ARM_CLIENT_ID_PLAN: ${{ steps.plan_env.outputs.ARM_CLIENT_ID_PLAN }}
       
     steps:
       - name: Get ARM_CLIENT_ID for Terraform Plan
@@ -221,7 +221,7 @@ jobs:
       ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
       TF_VERSION: ${{ needs.SetupTFEnv.outputs.TF_VERSION }}
     outputs:
-      ARM_CLIENT_ID_APPLY: steps.apply_env.outputs.ARM_CLIENT_ID_APPLY
+      ARM_CLIENT_ID_APPLY: ${{ steps.apply_env.outputs.ARM_CLIENT_ID_APPLY }}
     steps:
       - name: Get ARM_CLIENT_ID for Terraform Apply
         id: apply_env        
@@ -256,7 +256,7 @@ jobs:
       TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
       TF_KEY: ${{ needs.SetupTFEnv.outputs.TF_KEY }}
     outputs:
-      STATE_EXISTS: steps.check_blob.outputs.STATE_EXISTS
+      STATE_EXISTS: ${{ steps.check_blob.outputs.STATE_EXISTS }}
     steps:
       - name: Login to Azure CLI
         uses: azure/login@v1
