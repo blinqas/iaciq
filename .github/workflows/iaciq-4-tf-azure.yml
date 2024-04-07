@@ -82,7 +82,7 @@ on:
       STATE_EXISTS:
         type: boolean
         description: 'The state exists flag'
-        required: true
+        required: true        
 
 env:
   folder: ${{ inputs.folder}}
@@ -104,7 +104,7 @@ env:
 jobs:
   terraform-init:
     name: New state ${{ inputs.job_name }}
-    if: ${{ inputs.STATE_EXISTS == false }}
+    if: ${{ inputs.STATE_EXISTS == 'false' }}
     runs-on: ubuntu-latest
     defaults:
       run:
