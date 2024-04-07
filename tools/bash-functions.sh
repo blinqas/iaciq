@@ -25,33 +25,27 @@ function terraform_expand_tfvars {
         error "${LINENO}" "Folder ${1} does not exist." 1
     fi
 
-    log_info "Expanding variable files: ${1}/*.tfvars"
+    # Expanding variable files: ${1}/*.tfvars
     for filename in "${1}"/*.tfvars; do
         if [[ "${filename}" != "${1}/*.tfvars" ]]; then
             PARAMS+="-var-file='${filename}' "
         fi
     done
 
-    log_info "Expanding variable files: ${1}/*.tfvars.json"
+    # Expanding variable files: ${1}/*.tfvars.json
     for filename in "${1}"/*.tfvars.json; do
         if [[ "${filename}" != "${1}/*.tfvars.json" ]]; then
             PARAMS+="-var-file='${filename}' "
         fi
     done
 
-    log_info "Expanding variable files: ${1}/*.tfvars.yml and ${1}/*.tfvars.yaml"
+    # Expanding variable files: ${1}/*.tfvars.yml and ${1}/*.tfvars.yaml
     for filename in "${1}"/*.tfvars.{yml,yaml}; do
         # Since brace expansion does not match if there are no files, you need pattern matching here
         if [[ -f "${filename}" ]]; then
             PARAMS+="-var-file='${filename}' "
         fi
     done
-
-    # Check there are some tfvars files
-    if [[ -z "${PARAMS}" ]]; then
-        error "${LINENO}" "Folder ${1} does not have any tfvars files." 1
-    fi
-
     echo "$PARAMS"
 }
 

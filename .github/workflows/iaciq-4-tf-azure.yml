@@ -278,7 +278,7 @@ jobs:
         run: |
           # Securely load bash functions with integrity check
           curl -s -o bash-functions.sh https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
-          if ! echo "2418f0c3c5db87fccccc4ed7530043cb777e09de356683c64adee29ab3bb3637  bash-functions.sh" | sha256sum --check; then
+          if ! echo "5cb7ecc72b08c9d272922f797b030e0ae9a38d542b31d6ad05b2b2e2e812269a  bash-functions.sh" | sha256sum --check; then
             echo "Checksum verification failed. The script will not be executed."
             exit 1
           else
