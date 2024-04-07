@@ -41,7 +41,10 @@ jobs:
       TF_KEY: ${{ steps.environment.outputs.TF_KEY }}
       TF_STORAGE_ACCOUNT: ${{ steps.environment.outputs.TF_STORAGE_ACCOUNT }}
       TF_RESOURCE_GROUP: ${{ steps.environment.outputs.TF_RESOURCE_GROUP }}
-      TF_CONTAINER_NAME: ${{ steps.environment.outputs.TF_CONTAINER_NAME       }}
+      TF_CONTAINER_NAME: ${{ steps.environment.outputs.TF_CONTAINER_NAME }}
+      ARM_CLIENT_ID_INIT: ${{ steps.environment.outputs.ARM_CLIENT_ID_INIT }}
+      ARM_CLIENT_ID_PLAN: ${{ steps.environment.outputs.ARM_CLIENT_ID_PLAN }}
+      ARM_CLIENT_ID_APPLY: ${{ steps.environment.outputs.ARM_CLIENT_ID_APPLY }}
       ARM_TENANT_ID: ${{ steps.environment.outputs.ARM_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ steps.environment.outputs.ARM_SUBSCRIPTION_ID }}
 
@@ -170,106 +173,26 @@ jobs:
             exit 1
           fi
 
+          # ARM_CLIENT_ID_INIT
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" ]]; then
+            echo "ARM_CLIENT_ID_INIT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+          elif [[ -n "$ARM_CLIENT_ID_INIT" ]]; then
+            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID_INIT" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+          fi
+
+          # ARM_CLIENT_ID_PLAN
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" ]]; then
+            echo "ARM_CLIENT_ID_PLAN=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+          elif [[ -n "$ARM_CLIENT_ID_PLAN" ]]; then
+            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID_PLAN" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT
+          fi
+
           # Resolve ARM_CLIENT_ID_APPLY variable, iaciq.yml values override repository variables.
           # ARM_CLIENT_ID_APPLY
           if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" ]]; then
             echo "ARM_CLIENT_ID_APPLY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
           elif [[ -n "$ARM_CLIENT_ID_APPLY" ]]; then
-            # We are only able to catch this variable from repository variables and not apply environment. Apply environments will normaly be configured with approval rules and we don't want a unessecary approval step just to read the variable.
             echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID_APPLY" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID" ]]; then
-            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          else
-            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
-            exit 1
-          fi
-
-  SetupTFInit:
-    name: EnvInit ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
-    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
-    needs: SetupTFEnv
-    environment: ${{ needs.SetupTFEnv.outputs.environment_init }}
-    runs-on: ${{ inputs.runs_on }}
-    defaults:
-      run:
-        shell: bash
-    outputs:
-      ARM_CLIENT_ID_INIT: ${{ steps.init_env.outputs.ARM_CLIENT_ID_INIT }}
-      
-    steps:
-      - name: Get ARM_CLIENT_ID for Terraform Init
-        id: init_env        
-        run: |
-          # ARM_CLIENT_ID_INIT
-          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" ]]; then
-            echo "ARM_CLIENT_ID_INIT=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_INIT }}" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID_INIT" ]]; then
-            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID_INIT" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID" ]]; then
-            echo "ARM_CLIENT_ID_INIT=$ARM_CLIENT_ID" >> "$GITHUB_OUTPUT"
-          else
-            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
-            exit 1
-          fi
-
-
-  SetupTFPlan:    
-    name: EnvPlan ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
-    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
-    needs: SetupTFEnv
-    environment: ${{ needs.SetupTFEnv.outputs.environment_plan }}
-    runs-on: ${{ inputs.runs_on }}
-    defaults:
-      run:
-        shell: bash
-    outputs:
-      ARM_CLIENT_ID_PLAN: ${{ steps.plan_env.outputs.ARM_CLIENT_ID_PLAN }}
-      
-    steps:
-      - name: Get ARM_CLIENT_ID for Terraform Plan
-        id: plan_env        
-        run: |
-          # ARM_CLIENT_ID_PLAN
-          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" ]]; then
-            echo "ARM_CLIENT_ID_PLAN=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_PLAN }}" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID_PLAN" ]]; then
-            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID_PLAN" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID" ]]; then
-            echo "ARM_CLIENT_ID_PLAN=$ARM_CLIENT_ID" >> "$GITHUB_OUTPUT"
-          else
-            echo "No ARM_CLIENT_ID for Terraform Plan found in input, iaciq.yml or github environment"
-            exit 1
-          fi
-
-  SetupTFApply:
-    name: EnvApply ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
-    if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
-    needs: SetupTFEnv
-    environment: ${{ needs.SetupTFEnv.outputs.environment_apply }}
-    runs-on: ${{ inputs.runs_on }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
-      TF_VERSION: ${{ needs.SetupTFEnv.outputs.TF_VERSION }}
-    outputs:
-      ARM_CLIENT_ID_APPLY: ${{ steps.apply_env.outputs.ARM_CLIENT_ID_APPLY }}
-    steps:
-      - name: Get ARM_CLIENT_ID for Terraform Apply
-        id: apply_env        
-        run: |
-          # ARM_CLIENT_ID_APPLY
-          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" ]]; then
-            echo "ARM_CLIENT_ID_APPLY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID_APPLY" ]]; then
-            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID_APPLY" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          elif [[ -n "$ARM_CLIENT_ID" ]]; then
-            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          else
-            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
-            exit 1
           fi
 
   CheckStateExist:
@@ -342,9 +265,9 @@ jobs:
       TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
       ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
-      ARM_CLIENT_ID_INIT: ${{ needs.SetupTFInit.outputs.ARM_CLIENT_ID_INIT }}
-      ARM_CLIENT_ID_PLAN: ${{ needs.SetupTFPlan.outputs.ARM_CLIENT_ID_PLAN }}
-      ARM_CLIENT_ID_APPLY: ${{ needs.SetupTFApply.outputs.ARM_CLIENT_ID_APPLY }}
+      ARM_CLIENT_ID_INIT: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_INIT }}
+      ARM_CLIENT_ID_PLAN: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_PLAN }}
+      ARM_CLIENT_ID_APPLY: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_APPLY }}
       STATE_EXISTS: '${{ needs.CheckStateExist.outputs.STATE_EXISTS }}'
     permissions:
       contents: read

@@ -111,16 +111,24 @@ jobs:
         shell: bash
         working-directory: ${{ inputs.terraform_module_path }}
     environment: ${{ inputs.environment_init }}
-
-    env:
-      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_INIT }}
-         
+        
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 0
           submodules: 'recursive'
+
+      - name: Check if ARM_CLIENT_ID is configured
+        run: |
+          if [ -z "$ARM_CLIENT_ID" ]; then
+            if [ -n "$ARM_CLIENT_ID_INIT" ]; then
+              echo "ARM_CLIENT_ID=$ARM_CLIENT_ID_INIT" >> $GITHUB_ENV
+            else
+              echo "ARM_CLIENT_ID is not set. Exiting..."
+              exit 1
+            fi            
+          fi
 
       - name: PreHook Terraform Init
         working-directory: ${{ env.folder }}
@@ -180,15 +188,23 @@ jobs:
       plan_file: ${{ steps.plan.outputs.plan_file }}
       PLAN_EXIT_CODE: ${{ steps.plan.outputs.PLAN_EXIT_CODE }}
 
-    env:
-      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_PLAN }}
-          
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 0
           submodules: 'recursive'
+
+      - name: Check if ARM_CLIENT_ID is configured
+        run: |
+          if [ -z "$ARM_CLIENT_ID" ]; then
+            if [ -n "$ARM_CLIENT_ID_PLAN" ]; then
+              echo "ARM_CLIENT_ID=$ARM_CLIENT_ID_PLAN" >> $GITHUB_ENV
+            else
+              echo "ARM_CLIENT_ID is not set. Exiting..."
+              exit 1
+            fi            
+          fi
 
       - name: PreHook Terraform
         working-directory: ${{ env.folder }}
@@ -335,20 +351,23 @@ jobs:
     needs: [terraform-plan]
     if: ${{ needs.terraform-plan.outputs.PLAN_EXIT_CODE == '2' }}
     environment: ${{ inputs.environment_apply }}
-
-    env:
-      ARM_CLIENT_ID: ${{ inputs.ARM_CLIENT_ID_APPLY }}
-         
+        
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '21'
+      - name: Check if ARM_CLIENT_ID is configured
+        run: |
+          if [ -z "$ARM_CLIENT_ID" ]; then
+            if [ -n "$ARM_CLIENT_ID_APPLY" ]; then
+              echo "ARM_CLIENT_ID=$ARM_CLIENT_ID_APPLY" >> $GITHUB_ENV
+            else
+              echo "ARM_CLIENT_ID is not set. Exiting..."
+              exit 1
+            fi            
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3.0.0
