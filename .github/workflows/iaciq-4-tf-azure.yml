@@ -168,6 +168,8 @@ jobs:
 
   terraform-plan:
     name: Plan ${{ inputs.job_name }}
+    needs: terraform-init
+    if: always() && (needs.terraform-init.result == 'success' || needs.terraform-init.result == 'skipped')
     runs-on: ubuntu-latest
     defaults:
       run:
