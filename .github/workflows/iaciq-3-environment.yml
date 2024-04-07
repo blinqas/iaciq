@@ -200,7 +200,6 @@ jobs:
     if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
     needs:
       - SetupTFEnv
-      - SetupTFApply
     runs-on: ${{ inputs.runs_on }}
     defaults:
       run:
@@ -242,9 +241,6 @@ jobs:
     name: "Terraform Azure"
     needs:
       - SetupTFEnv
-      - SetupTFInit
-      - SetupTFPlan
-      - SetupTFApply
       - CheckStateExist
     if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
     uses: blinqas/iaciq/.github/workflows/iaciq-4-tf-azure.yml@main
