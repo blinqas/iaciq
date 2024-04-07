@@ -1,3 +1,5 @@
+# When you update this file you need to update the sha256sum in the workflows who use this file
+# Run: sha256sum tools/bash-functions.sh
 function log_info() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $1"
 }
@@ -15,7 +17,7 @@ function terraform_expand_tfvars_legacy() {
   find "$TFVARS_DIR" -name '*.tfvars' -exec echo "-var-file=\"{}\"" \; | xargs
 }
 
-function expand_tfvars_folder {
+function terraform_expand_tfvars {
     local PARAMS=""
 
     # Check the folder path exist
@@ -52,7 +54,6 @@ function expand_tfvars_folder {
 
     echo "$PARAMS"
 }
-
 
 function terraform_plan_git_pull_request_comment() {
   # Configure Git user

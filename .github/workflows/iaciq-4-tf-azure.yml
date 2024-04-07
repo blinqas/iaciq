@@ -262,11 +262,11 @@ jobs:
         run: |
           # Securely load bash functions with integrity check
           curl -s -o bash-functions.sh https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
-          if ! echo "5ad76e65df72ec152d82d55240e1d1093f437737925afca4272fcf60e1e40ec7  bash-functions.sh" | sha256sum --check; then
+          if ! echo "aa1236e5d15366de3325c7eedc632e747cc927aa5a10d317fa89c9a5dd39d320  bash-functions.sh" | sha256sum --check; then
             echo "Checksum verification failed. The script will not be executed."
             exit 1
           fi
-          chmod +x bash-functions.sh && source bash-functions.sh
+          chmod +x bash-functions.sh && source ./bash-functions.sh
       
           # Check if extra_parameters.txt exists and is not empty
           if [ -s extra_parameters.txt ]; then

@@ -170,6 +170,20 @@ jobs:
             exit 1
           fi
 
+          # Resolve ARM_CLIENT_ID_APPLY variable, iaciq.yml values override repository variables.
+          # ARM_CLIENT_ID_APPLY
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" ]]; then
+            echo "ARM_CLIENT_ID_APPLY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].ARM_CLIENT_ID_APPLY }}" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID_APPLY" ]]; then
+            # We are only able to catch this variable from repository variables and not apply environment. Apply environments will normaly be configured with approval rules and we don't want a unessecary approval step just to read the variable.
+            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID_APPLY" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          elif [[ -n "$ARM_CLIENT_ID" ]]; then
+            echo "ARM_CLIENT_ID_APPLY=$ARM_CLIENT_ID" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          else
+            echo "No ARM_CLIENT_ID for Terraform Init found in input, iaciq.yml or github environment"
+            exit 1
+          fi
+
   SetupTFInit:
     name: EnvInit ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
     if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
