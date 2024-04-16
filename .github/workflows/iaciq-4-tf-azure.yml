@@ -294,7 +294,7 @@ jobs:
         id: plan
         working-directory: ${{ inputs.terraform_module_path }}
         run: |
-
+          source ${{ env.BASH_FUNCTIONS_PATH }}
       
           # Check if extra_parameters.txt exists and is not empty
           if [ -s extra_parameters.txt ]; then
@@ -302,8 +302,10 @@ jobs:
           fi
       
           # Run terraform plan with combined parameters
-          plan_file="plan.tfplan"
-          output_file="plan_output.txt"
+          # Get the github action run id
+          run_id=$(echo $GITHUB_RUN_ID)
+          plan_file="plan-${run_id}.tfplan"
+          output_file="plan-output-${run_id}.txt"
 
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
           terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
@@ -344,14 +346,14 @@ jobs:
         if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
         uses: actions/upload-artifact@v4
         with:
-          name: "plan.tfplan"
+          name: ${{ env.plan_file }}
           path: ${{ env.plan_file }}
   
       - name: Upload Terraform Plan Outputs as Artifacts
         if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
         uses: actions/upload-artifact@v3
         with:
-          name: "plan-output.txt"
+          name: ${{ env.output_file }}
           path: ${{ env.output_file }}
 
   terraform-apply:    
@@ -414,7 +416,7 @@ jobs:
       - name: Download Terraform Plan from Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: "plan.tfplan"
+          name: ${{ env.plan_file }}
           path: ${{ env.terraform_module_path }}
 
       - name: PreHook Apply
