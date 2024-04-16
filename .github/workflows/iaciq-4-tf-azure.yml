@@ -105,6 +105,7 @@ env:
   TF_STORAGE_ACCOUNT: ${{ inputs.TF_STORAGE_ACCOUNT }} 
   TF_RESOURCE_GROUP: ${{ inputs.TF_RESOURCE_GROUP }}
   TF_CONTAINER_NAME: ${{ inputs.TF_CONTAINER_NAME }}
+  SHA256SUM: ${{ inputs.SHA256SUM }}
 
 jobs:
   terraform-init:
