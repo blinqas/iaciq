@@ -173,7 +173,7 @@ function terraform_plan_output_title() {
     # Set GitHub Actions environment variable if a condition was met
     if [ -n "$plan_output_step_title" ]; then
       echo plan_output_step_title="$plan_output_step_title" >> $GITHUB_ENV
-      return $plan_output_step_title
+      return "$plan_output_step_title"
     fi
     return null
 }
