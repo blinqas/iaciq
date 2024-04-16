@@ -82,7 +82,12 @@ on:
       STATE_EXISTS:
         type: string
         description: 'The state exists flag'
-        required: true        
+        required: true
+      SHA256SUM:
+        type: string
+        description: 'The SHA256SUM of the bash-functions.sh'
+        required: false
+        default: '3b97fd5fa4cdbff2311034400d0012b674e26c0a5f39faf0a5abe4dfdf28487f'      
 
 env:
   folder: ${{ inputs.folder}}
@@ -278,7 +283,7 @@ jobs:
         run: |
           # Securely load bash functions with integrity check
           curl -s -o bash-functions.sh https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
-          if ! echo "440714893d33b9f29d929f76b58cc219bbde26feba66f65cecbcf9c5435178b3  bash-functions.sh" | sha256sum --check; then
+          if ! echo "${SHA256SUM}  bash-functions.sh" | sha256sum --check; then
             echo "Checksum verification failed. The script will not be executed."
             exit 1
           else
