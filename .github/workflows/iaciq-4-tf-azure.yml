@@ -106,6 +106,7 @@ env:
   TF_RESOURCE_GROUP: ${{ inputs.TF_RESOURCE_GROUP }}
   TF_CONTAINER_NAME: ${{ inputs.TF_CONTAINER_NAME }}
   SHA256SUM: ${{ inputs.SHA256SUM }}
+  BASH_FUNCTIONS_PATH: "${{ github.workspace }}/bash-functions.sh"
 
 jobs:
   terraform-init:
@@ -201,6 +202,17 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
+      - name: Load bash functions
+        run: |
+          # Securely load bash functions with integrity check
+          curl -s -o ${{ env.BASH_FUNCTIONS_PATH }} https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
+          if ! echo "${SHA256SUM}  ${{ env.BASH_FUNCTIONS_PATH }}" | sha256sum --check; then
+            echo "Checksum verification failed. The script will not be executed."
+            exit 1
+          else
+            chmod +x ${{ env.BASH_FUNCTIONS_PATH }} && source ${{ env.BASH_FUNCTIONS_PATH }}
+          fi
+
       - name: Check if ARM_CLIENT_ID is configured
         run: |
           if [ -z "$ARM_CLIENT_ID" ]; then
@@ -282,14 +294,7 @@ jobs:
         id: plan
         working-directory: ${{ inputs.terraform_module_path }}
         run: |
-          # Securely load bash functions with integrity check
-          curl -s -o bash-functions.sh https://raw.githubusercontent.com/blinqas/iaciq/main/tools/bash-functions.sh
-          if ! echo "${SHA256SUM}  bash-functions.sh" | sha256sum --check; then
-            echo "Checksum verification failed. The script will not be executed."
-            exit 1
-          else
-            chmod +x bash-functions.sh && source ./bash-functions.sh
-          fi
+
       
           # Check if extra_parameters.txt exists and is not empty
           if [ -s extra_parameters.txt ]; then
@@ -299,13 +304,18 @@ jobs:
           # Run terraform plan with combined parameters
           plan_file="plan.tfplan"
           output_file="plan_output.txt"
+
+          # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
           terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
           PLAN_EXIT_CODE=${PIPESTATUS[0]} 
-          echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          echo "output_file=$output_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
       
           # Parse the terraform plan output
           terraform_plan_output_title "$output_file"
+
+          # Export the plan exit code and plan file to be used in the next steps
+          echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          echo "plan_file=$plan_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          echo "output_file=$output_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
         continue-on-error: true        
 
       - name: PostHook Plan
@@ -317,7 +327,7 @@ jobs:
       - name: ${{ env.plan_output_step_title }}
         id: evaluate-plan-exit-code
         run: |
-          source bash-functions.sh
+          source ${{ env.BASH_FUNCTIONS_PATH }}
 
           # Bash function to print the essential plan output
           terraform_print_essential_plan_output "$output_file"
