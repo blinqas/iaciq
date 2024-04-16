@@ -87,7 +87,7 @@ on:
         type: string
         description: 'The SHA256SUM of the bash-functions.sh'
         required: false
-        default: '73146c718b12bd468307e021194707d82b71f742a5666637e44f06c9bbeb2806'      
+        default: '32f7074822082284fb24bbd79e4e8f358db7a1606d628e1186b86e0d27e7b85e'      
 
 env:
   folder: ${{ inputs.folder}}
