@@ -28,14 +28,14 @@ function terraform_expand_tfvars {
     # Expanding variable files: ${1}/*.tfvars
     for filename in "${1}"/*.tfvars; do
         if [[ "${filename}" != "${1}/*.tfvars" ]]; then
-            PARAMS+="-var-file='${filename}' "
+            PARAMS+="-var-file=${filename} "
         fi
     done
 
     # Expanding variable files: ${1}/*.tfvars.json
     for filename in "${1}"/*.tfvars.json; do
         if [[ "${filename}" != "${1}/*.tfvars.json" ]]; then
-            PARAMS+="-var-file='${filename}' "
+            PARAMS+="-var-file=${filename} "
         fi
     done
 
@@ -43,7 +43,7 @@ function terraform_expand_tfvars {
     for filename in "${1}"/*.tfvars.{yml,yaml}; do
         # Since brace expansion does not match if there are no files, you need pattern matching here
         if [[ -f "${filename}" ]]; then
-            PARAMS+="-var-file='${filename}' "
+            PARAMS+="-var-file=${filename} "
         fi
     done
     echo "$PARAMS"
