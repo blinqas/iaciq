@@ -182,7 +182,6 @@ jobs:
     
       - name: Terraform Init
         id: init
-        working-directory: ${{ inputs.terraform_module_path }}
         run: |
           terraform init \
           -reconfigure \
@@ -263,13 +262,11 @@ jobs:
 
       - name: Terraform Format
         id: terraform-fmt
-        working-directory: ${{ inputs.terraform_module_path }}
         run: terraform fmt --check --recursive
         continue-on-error: false
     
       - name: Terraform Init
         id: init
-        working-directory: ${{ inputs.terraform_module_path }}
         run: |
           # Check if TF_KEY is set, if not, set it to the folder base name
           if [ -z "$TF_KEY" ]; then
@@ -294,7 +291,6 @@ jobs:
 
       - name: Terraform Validate
         id: validate
-        working-directory: ${{ inputs.terraform_module_path }}
         run: terraform validate -no-color
 
       - name: PreHook Plan
@@ -305,7 +301,6 @@ jobs:
     
       - name: Terraform Plan
         id: plan
-        working-directory: ${{ inputs.terraform_module_path }}
         run: |
           source ${{ env.BASH_FUNCTIONS_PATH }}
       
@@ -354,20 +349,22 @@ jobs:
           if [ "$PLAN_EXIT_CODE" != "2" || "$PLAN_EXIT_CODE" != 0 ]; then
             exit 1
           fi
+
+          ls -lsa
   
       - name: Upload Terraform Plan as Artifacts
         if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.plan_file }}
-          path: ${{ env.plan_file }}
+          name: "${{ env.plan_file }}"
+          path: "${{ inputs.terraform_module_path }}/${{ env.plan_file }}"
   
       - name: Upload Terraform Plan Outputs as Artifacts
         if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.output_file }}
-          path: ${{ env.output_file }}
+          name: "${{ env.output_file }}"
+          path: "${{ inputs.terraform_module_path }}/${{ env.output_file }}"
 
   terraform-apply:    
     name: Apply ${{ inputs.job_name }}
