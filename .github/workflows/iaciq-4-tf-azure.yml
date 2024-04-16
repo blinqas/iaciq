@@ -302,6 +302,7 @@ jobs:
           terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
           PLAN_EXIT_CODE=${PIPESTATUS[0]} 
           echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          echo "output_file=$output_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
       
           # Parse the terraform plan output
           terraform_plan_output_title "$output_file"

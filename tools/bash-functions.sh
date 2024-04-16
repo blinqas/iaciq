@@ -150,7 +150,7 @@ function terraform_configure_environments() {
 
 function terraform_plan_output_title() {
 
-    local output_file=$1
+    local output_file="$1"
 
     # Initialize variable
     plan_output_step_title=""
@@ -158,14 +158,14 @@ function terraform_plan_output_title() {
     # Continue execution on error
     set +e
     # Check various conditions and update variable accordingly
-    if grep -E "^Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy\.$" $output_file; then
-    plan_output_step_title=$(grep -E "^Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy\.$" $output_file)
-    elif grep -oi "No changes. No objects need to be destroyed." $output_file; then
-    plan_output_step_title=$(grep -oi "No changes. No objects need to be destroyed." $output_file)
-    elif grep -oi "Changes to Outputs:" $output_file; then
-    plan_output_step_title=$(grep -oi "Changes to Outputs:" $output_file)
-    elif grep -oi "No changes. Your infrastructure matches the configuration." $output_file; then
-    plan_output_step_title=$(grep -oi "No changes. Your infrastructure matches the configuration." $output_file)
+    if grep -E "^Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy\.$" "$output_file"; then
+        plan_output_step_title=$(grep -E "^Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy\.$" "$output_file")
+    elif grep -oi "No changes. No objects need to be destroyed." "$output_file"; then
+        plan_output_step_title=$(grep -oi "No changes. No objects need to be destroyed." "$output_file")
+    elif grep -oi "Changes to Outputs:" "$output_file"; then
+        plan_output_step_title=$(grep -oi "Changes to Outputs:" "$output_file")
+    elif grep -oi "No changes. Your infrastructure matches the configuration." "$output_file"; then
+        plan_output_step_title=$(grep -oi "No changes. Your infrastructure matches the configuration." "$output_file")
     fi
     # Restore error handling behavior
     set -e
@@ -178,8 +178,8 @@ function terraform_plan_output_title() {
       # Echo empty string if no condition was met
       echo ""
     fi
-
 }
+
 
 function terraform_print_essential_plan_output() {
     local output_file=$1
