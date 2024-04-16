@@ -196,7 +196,7 @@ jobs:
           fi
 
   CheckStateExist:
-    name: CheckStateExist ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
+    name: Check if state exist ${{ fromJson(inputs.iaciq).metadata[inputs.folder].job_name }}
     if: ${{ fromJson(inputs.iaciq).metadata[inputs.folder].workflow_tag == 'iaciq-4-tf-azure' }}
     needs:
       - SetupTFEnv

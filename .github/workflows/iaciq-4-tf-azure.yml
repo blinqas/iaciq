@@ -109,7 +109,7 @@ env:
 
 jobs:
   terraform-init:
-    name: New state ${{ inputs.job_name }}
+    name: Init state for ${{ inputs.job_name }}
     if: ${{ inputs.STATE_EXISTS != 'true' }}
     runs-on: ubuntu-latest
     defaults:
@@ -304,8 +304,7 @@ jobs:
           echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
       
           # Parse the terraform plan output
-          plan_output_step_title=$(terraform_plan_output_title "$output_file")
-          echo "plan_output_step_title=$plan_output_step_title" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
+          terraform_plan_output_title "$output_file"
         continue-on-error: true        
 
       - name: PostHook Plan
