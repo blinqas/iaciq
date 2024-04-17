@@ -377,7 +377,7 @@ jobs:
 
   terraform-apply:    
     name: Apply ${{ inputs.job_name }}
-    runs-on: rover
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
