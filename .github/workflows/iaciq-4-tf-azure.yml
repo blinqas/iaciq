@@ -366,14 +366,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "plan-${{ github.run_id }}.tfplan"
-          path: "${{ env.plan_file }}"
+          path: "${{ inputs.terraform_module_path }}/${{ env.plan_file }}"
   
       - name: Upload Terraform Plan Outputs as Artifacts
         if: steps.plan.outputs.exitcode == '2' || steps.plan.outputs.exitcode == '0'
         uses: actions/upload-artifact@v4
         with:
           name: "plan-output-${{ github.run_id }}.txt"
-          path: "${{ env.output_file }}"
+          path: "${{ inputs.terraform_module_path }}/${{ env.output_file }}"
 
   terraform-apply:    
     name: Apply ${{ inputs.job_name }}
