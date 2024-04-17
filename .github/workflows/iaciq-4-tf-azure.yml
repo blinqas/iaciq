@@ -317,6 +317,8 @@ jobs:
 
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
           var_files=$(terraform_expand_tfvars $folder)
+          cmd="terraform plan ${EXTRA_PARAMETERS[@]} $var_files -out=$plan_file -input=false -no-color -detailed-exitcode"
+          echo "Terraform Plan Command: $cmd"
           terraform plan "${EXTRA_PARAMETERS[@]}" "$var_files" -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
           PLAN_EXIT_CODE=${PIPESTATUS[0]} 
       
