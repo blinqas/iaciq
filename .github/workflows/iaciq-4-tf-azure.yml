@@ -92,6 +92,8 @@ on:
 env:
   folder: ${{ inputs.folder}}
   terraform_module_path: ${{ inputs.terraform_module_path }}
+  plan_file: "plan-${{ github.run_id }}.tfplan"
+  output_file: "plan-output-${{ github.run_id }}.txt"
   ARM_USE_AZUREAD: true     # This iaciq Workflow will use AzureAD for authentication
   ARM_USE_OIDC: true        # This iaciq Workflow will use OIDC for authentication
   TF_BACKEND_TYPE: azurerm  # This iaciq Workflow will use AzureRM as the backend
@@ -204,8 +206,7 @@ jobs:
         working-directory: ${{ inputs.terraform_module_path }}
     environment: ${{ inputs.environment_plan }}
     outputs:
-      plan_file: ${{ steps.plan.outputs.plan_file }}
-      PLAN_EXIT_CODE: ${{ steps.plan.outputs.PLAN_EXIT_CODE }}
+      PLAN_EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
 
     steps:
       - name: Checkout
@@ -307,20 +308,15 @@ jobs:
           if [ -s extra_parameters.txt ]; then
             mapfile -t EXTRA_PARAMETERS < extra_parameters.txt
           fi
-      
-          # Run terraform plan with combined parameters
-          # Get the github action run id
-          run_id=$(echo $GITHUB_RUN_ID)
-          plan_file="plan-${run_id}.tfplan"
-          output_file="plan-output-${run_id}.txt"
 
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
-          terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode
+          terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="${{ env.plan_file }}" -input=false -no-color -detailed-exitcode
         continue-on-error: true
 
-      - run: echo "${{ steps.plan.outputs.stdout }}"
-      - run: echo "${{ steps.plan.outputs.stderr }}"
-      - run: echo "${{ steps.plan.outputs.exitcode }}"
+      - run: echo "PLAN_OUTPUT \n ${{ steps.plan.outputs.stdout }}"
+      - run: echo ${{ steps.plan.outputs.stdout }} > ${{ env.output_file }}
+      - run: echo "PLAN_ERROR_CODE=${{ steps.plan.outputs.stderr }}"
+      - run: echo "PLAN_EXIT_CODE=${{ steps.plan.outputs.exitcode }}"
 
       - uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
@@ -366,17 +362,17 @@ jobs:
           echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Upload Terraform Plan as Artifacts
-        if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
+        if: steps.plan.outputs.exitcode == '2' || steps.plan.outputs.exitcode == '0'
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ env.plan_file }}"
-          path: "${{ inputs.terraform_module_path }}/${{ env.plan_file }}"
+          name: "plan-${{ github.run_id }}.tfplan"
+          path: "${{ env.plan_file }}"
   
       - name: Upload Terraform Plan Outputs as Artifacts
-        if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
-        uses: actions/upload-artifact@v3
+        if: steps.plan.outputs.exitcode == '2' || steps.plan.outputs.exitcode == '0'
+        uses: actions/upload-artifact@v4
         with:
-          name: "${{ env.output_file }}"
+          name: "plan-output-${{ github.run_id }}.txt"
           path: "${{ inputs.terraform_module_path }}/${{ env.output_file }}"
 
   terraform-apply:    
