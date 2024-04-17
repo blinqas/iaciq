@@ -373,7 +373,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "plan-output-${{ github.run_id }}.txt"
-          path: "${{ inputs.terraform_module_path }}/${{ env.output_file }}"
+          path: "${{ env.output_file }}"
 
   terraform-apply:    
     name: Apply ${{ inputs.job_name }}
