@@ -314,7 +314,7 @@ jobs:
         continue-on-error: true
 
       - run: echo "PLAN_OUTPUT \n ${{ steps.plan.outputs.stdout }}"
-      - run: echo ${{ steps.plan.outputs.stdout }} > ${{ env.output_file }}
+      - run: echo "${{ steps.plan.outputs.stdout }}" > "${{ env.output_file }}"
       - run: echo "PLAN_ERROR_CODE=${{ steps.plan.outputs.stderr }}"
       - run: echo "PLAN_EXIT_CODE=${{ steps.plan.outputs.exitcode }}"
 
