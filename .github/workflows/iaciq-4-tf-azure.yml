@@ -255,16 +255,15 @@ jobs:
           hook="prehook_terraform.sh"
           echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3.0.0
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Terraform Format
-        id: terraform-fmt
-        run: terraform fmt --check --recursive
-        continue-on-error: false
-    
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+      
       - name: Terraform Init
         id: init
         run: |
@@ -282,28 +281,28 @@ jobs:
           -backend-config="container_name=$TF_CONTAINER_NAME" \
           -backend-config="key=${TF_KEY}" \
           -backend-config="subscription_id=$ARM_SUBSCRIPTION_ID"
-      
+
       - name: PreHook Validate
         working-directory: ${{ env.folder }}
         run: |
           hook="prehook_validate.sh"
           echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
-
+    
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-
+      
       - name: PreHook Plan
         working-directory: ${{ env.folder }}
         run: |
           hook="prehook_plan.sh"
           echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
-    
+
       - name: Terraform Plan
         id: plan
-        run: |
+        run: | 
           source ${{ env.BASH_FUNCTIONS_PATH }}
-      
+        
           # Check if extra_parameters.txt exists and is not empty
           if [ -s extra_parameters.txt ]; then
             mapfile -t EXTRA_PARAMETERS < extra_parameters.txt
@@ -316,25 +315,49 @@ jobs:
           output_file="plan-output-${run_id}.txt"
 
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
-          # terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode | tee "$output_file"
-          set +e
-          terraform plan -detailed-exitcode
-          echo "PLAN_EXIT_CODE: $?"
-          
-          
-          # Print all ${PIPESTATUS[@]} values
-          echo "PIPESTATUS: ${PIPESTATUS[*]}"
-          PLAN_EXIT_CODE=${PIPESTATUS[0]} 
-          set -e
-          
-          # Parse the terraform plan output
-          terraform_plan_output_title "$output_file"
+          terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="$plan_file" -input=false -no-color -detailed-exitcode
+        continue-on-error: true
 
-          # Export the plan exit code and plan file to be used in the next steps
-          echo "PLAN_EXIT_CODE=$PLAN_EXIT_CODE" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          echo "plan_file=$plan_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-          echo "output_file=$output_file" | tee -a "$GITHUB_ENV" "$GITHUB_OUTPUT"
-        continue-on-error: true        
+      - run: echo ${{ steps.plan.outputs.stdout }}
+      - run: echo ${{ steps.plan.outputs.stderr }}
+      - run: echo ${{ steps.plan.outputs.exitcode }}
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+      
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+      
+            </details>
+      
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+      
+            <details><summary>Show Plan</summary>
+      
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+      
+            </details>
+      
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+      
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
       - name: PostHook Plan
         working-directory: ${{ env.folder }}
@@ -342,24 +365,6 @@ jobs:
           hook="posthook_plan.sh"
           echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
-      - name: ${{ env.plan_output_step_title }}
-        id: evaluate-plan-exit-code
-        run: |
-          source ${{ env.BASH_FUNCTIONS_PATH }}
-
-          # Bash function to print the essential plan output
-          terraform_print_essential_plan_output "$output_file"
-
-          # Bash function to evaluate the terraform plan exit code, and exit the workflow if it's not 0 or 2
-          terraform_evaluate_plan_exit_code "$PLAN_EXIT_CODE"
-
-          # If the plan exit code is not 0 or 2, exit the workflow
-          if [ "$PLAN_EXIT_CODE" != "2" || "$PLAN_EXIT_CODE" != 0 ]; then
-            exit 1
-          fi
-
-          ls -lsa
-  
       - name: Upload Terraform Plan as Artifacts
         if: steps.plan.outputs.PLAN_EXIT_CODE == '2' || steps.plan.outputs.PLAN_EXIT_CODE == '0'
         uses: actions/upload-artifact@v4
