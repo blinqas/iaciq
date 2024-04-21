@@ -154,9 +154,7 @@ jobs:
 
       - name: PreHook Terraform Init
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_init.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_init.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -253,9 +251,7 @@ jobs:
 
       - name: PreHook Terraform
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_terraform.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_terraform.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -286,9 +282,7 @@ jobs:
 
       - name: PreHook Validate
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_validate.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_validate.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
     
       - name: Terraform Validate
         id: validate
@@ -296,9 +290,7 @@ jobs:
       
       - name: PreHook Plan
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_plan.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_plan.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Terraform Plan
         id: plan
@@ -359,9 +351,7 @@ jobs:
 
       - name: PostHook Plan
         working-directory: ${{ env.folder }}
-        run: |
-          hook="posthook_plan.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="posthook_plan.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Upload Terraform Plan as Artifacts
         if: steps.plan.outputs.exitcode == '2' || steps.plan.outputs.exitcode == '0'
@@ -424,9 +414,7 @@ jobs:
 
       - name: PreHook Terraform
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_terraform.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_terraform.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Terraform Init
         id: init
@@ -454,20 +442,12 @@ jobs:
 
       - name: PreHook Apply
         working-directory: ${{ env.folder }}
-        run: |
-          hook="prehook_apply.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="prehook_apply.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
 
       - name: Terraform Apply
         id: apply
-        run: |        
-          # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
-          ls -lsa
-          echo "plan_file: ${{ env.plan_file }}"
-          terraform apply ${{ env.plan_file }}
+        run: terraform apply ${{ env.plan_file }}
 
       - name: PostHook Apply
         working-directory: ${{ env.folder }}
-        run: |
-          hook="posthook_apply.sh"
-          echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
+        run: hook="posthook_apply.sh" && echo "echo \"$hook completed\"" >> $hook && chmod +x $hook && ./$hook
