@@ -206,8 +206,8 @@ jobs:
         working-directory: ${{ inputs.terraform_module_path }}
     environment: ${{ inputs.environment_plan }}
     outputs:
-      PLAN_EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
-      PLAN_ERROR_CODE: ${{ steps.plan.outputs.stderr }}
+      PLAN_EXIT_CODE: "${{ steps.plan.outputs.exitcode }}"
+      PLAN_ERROR_CODE: "${{ steps.plan.outputs.stderr }}"
 
     steps:
       - name: Checkout
