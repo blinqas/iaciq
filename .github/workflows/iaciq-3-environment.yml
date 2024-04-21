@@ -268,7 +268,7 @@ jobs:
       TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}
       TF_RESOURCE_GROUP: ${{ needs.SetupTFEnv.outputs.TF_RESOURCE_GROUP }}
       TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
-      TF_DESTROY: ${{ needs.SetupTFEnv.outputs.TF_DESTROY }}
+      TF_DESTROY: ${{ needs.SetupTFEnv.outputs.TF_DESTROY }}      
       ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
       ARM_CLIENT_ID_INIT: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_INIT }}
