@@ -62,7 +62,8 @@ on:
       TF_DESTROY:
         type: string
         description: 'The Terraform destroy flag'
-        required: true
+        required: false
+        default: 'false'
       ARM_CLIENT_ID_INIT:
         type: string
         description: 'The ARM_CLIENT_ID for the init environment'
