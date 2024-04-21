@@ -450,7 +450,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.plan_file }}
-          path: ${{ env.terraform_module_path }}
+          path: "${{ env.terraform_module_path }}/${{ env.plan_file }}"
 
       - name: PreHook Apply
         working-directory: ${{ env.folder }}
