@@ -99,6 +99,7 @@ env:
   terraform_module_path: ${{ inputs.terraform_module_path }}
   plan_file: "plan-${{ github.run_id }}.tfplan"
   output_file: "plan-output-${{ github.run_id }}.txt"
+  apply_output_file: "apply-output-${{ github.run_id }}.txt"
   ARM_USE_AZUREAD: true     # This iaciq Workflow will use AzureAD for authentication
   ARM_USE_OIDC: true        # This iaciq Workflow will use OIDC for authentication
   TF_BACKEND_TYPE: azurerm  # This iaciq Workflow will use AzureRM as the backend
@@ -456,7 +457,20 @@ jobs:
 
       - name: Terraform Apply
         id: apply
-        run: terraform apply ${{ env.plan_file }}
+        run: terraform apply -no-color ${{ env.plan_file }}
+
+      - name: Terraform apply output
+        id: apply-run
+        run: |
+          echo "${{ steps.apply.outputs.stdout }}"
+          echo "${{ steps.apply.outputs.stdout }}" > "${{ env.apply_output_file }}"
+
+      - name: Upload Terraform Apply Outputs as Artifacts
+        if: steps.apply.outputs.exitcode == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "apply-output-${{ github.run_id }}.txt"
+          path: "${{ inputs.terraform_module_path }}/${{ env.apply_output_file }}"
 
       - name: PostHook Apply
         working-directory: ${{ env.folder }}
