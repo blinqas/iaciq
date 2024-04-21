@@ -59,6 +59,10 @@ on:
         type: string
         description: 'The Terraform container name to use'
         required: true
+      TF_DESTROY:
+        type: string
+        description: 'The Terraform destroy flag'
+        required: true
       ARM_CLIENT_ID_INIT:
         type: string
         description: 'The ARM_CLIENT_ID for the init environment'
@@ -107,6 +111,7 @@ env:
   TF_STORAGE_ACCOUNT: ${{ inputs.TF_STORAGE_ACCOUNT }} 
   TF_RESOURCE_GROUP: ${{ inputs.TF_RESOURCE_GROUP }}
   TF_CONTAINER_NAME: ${{ inputs.TF_CONTAINER_NAME }}
+  TF_DESTROY: ${{ inputs.TF_DESTROY }}
   SHA256SUM: ${{ inputs.SHA256SUM }}
   BASH_FUNCTIONS_PATH: "${{ github.workspace }}/bash-functions.sh"
 

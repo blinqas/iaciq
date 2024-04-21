@@ -42,6 +42,7 @@ jobs:
       TF_STORAGE_ACCOUNT: ${{ steps.environment.outputs.TF_STORAGE_ACCOUNT }}
       TF_RESOURCE_GROUP: ${{ steps.environment.outputs.TF_RESOURCE_GROUP }}
       TF_CONTAINER_NAME: ${{ steps.environment.outputs.TF_CONTAINER_NAME }}
+      TF_DESTROY: ${{ steps.environment.outputs.TF_DESTROY }}
       ARM_CLIENT_ID_INIT: ${{ steps.environment.outputs.ARM_CLIENT_ID_INIT }}
       ARM_CLIENT_ID_PLAN: ${{ steps.environment.outputs.ARM_CLIENT_ID_PLAN }}
       ARM_CLIENT_ID_APPLY: ${{ steps.environment.outputs.ARM_CLIENT_ID_APPLY }}
@@ -125,6 +126,14 @@ jobs:
             echo "TF_CONTAINER_NAME=$TF_CONTAINER_NAME" >> "$GITHUB_OUTPUT"
           else
             echo "TF_CONTAINER_NAME=iaciq" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -n "${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_DESTROY }}" ]]; then
+            echo "TF_DESTROY=${{ fromJson(inputs.iaciq).metadata[inputs.folder].TF_DESTROY }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TF_DESTROY" ]]; then
+            echo "TF_DESTROY=$TF_DESTROY" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_DESTROY=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Resolve runs_on variable, iaciq.yml values override repository variables
@@ -259,6 +268,7 @@ jobs:
       TF_STORAGE_ACCOUNT: ${{ needs.SetupTFEnv.outputs.TF_STORAGE_ACCOUNT }}
       TF_RESOURCE_GROUP: ${{ needs.SetupTFEnv.outputs.TF_RESOURCE_GROUP }}
       TF_CONTAINER_NAME: ${{ needs.SetupTFEnv.outputs.TF_CONTAINER_NAME }}
+      TF_DESTROY: ${{ needs.SetupTFEnv.outputs.TF_DESTROY }}
       ARM_TENANT_ID: ${{ needs.SetupTFEnv.outputs.ARM_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ needs.SetupTFEnv.outputs.ARM_SUBSCRIPTION_ID }}
       ARM_CLIENT_ID_INIT: ${{ needs.SetupTFEnv.outputs.ARM_CLIENT_ID_INIT }}
