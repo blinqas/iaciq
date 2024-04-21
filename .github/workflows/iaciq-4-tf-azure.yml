@@ -384,9 +384,8 @@ jobs:
         shell: bash
         working-directory: ${{ inputs.terraform_module_path }}
     needs: [terraform-plan]
-    if: (${{ needs.terraform-plan.outputs.PLAN_EXIT_CODE == '2' }})
-    environment: ${{ inputs.environment_apply }}
-        
+    if: (${{ needs.terraform-plan.outputs.PLAN_EXIT_CODE }} == '2' && github.ref == 'refs/heads/main')
+    environment: ${{ inputs.environment_apply }}        
     steps:
       - name: Checkout
         uses: actions/checkout@v4
