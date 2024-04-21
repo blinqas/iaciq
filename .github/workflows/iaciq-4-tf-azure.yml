@@ -464,7 +464,7 @@ jobs:
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
           ls -lsa
           echo "plan_file: ${{ env.plan_file }}"
-          terraform apply "${{ env.plan_file }}" -auto-approve -no-color          
+          terraform apply "${{ env.plan_file }}" -auto-approve       
 
       - name: PostHook Apply
         working-directory: ${{ env.folder }}
