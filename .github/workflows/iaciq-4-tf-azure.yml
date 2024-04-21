@@ -311,6 +311,7 @@ jobs:
 
           # Run terraform plan and save the plant to plan.tfplan, and plan output to plan_output.txt
           terraform plan "${EXTRA_PARAMETERS[@]}" $(terraform_expand_tfvars "$folder") -out="${{ env.plan_file }}" -input=false -no-color -detailed-exitcode
+          cat "$GITHUB_OUTPUT"
         continue-on-error: true
 
       - run: echo "PLAN_OUTPUT \n ${{ steps.plan.outputs.stdout }}"
